@@ -1,8 +1,8 @@
-import { Action, AnyAction } from 'redux';
+import { Action } from 'redux';
 import { ThunkAction } from 'redux-thunk';
 import { RootState } from './store';
 
-interface UserEvent {
+export interface UserEvent {
   id: number;
   title: string;
   dateStart: string;
@@ -14,46 +14,58 @@ interface UserEventsState {
   allIds: UserEvent['id'][];
 }
 
-const LOAD_REQUEST = 'userEvents/load_request'
+const LOAD_REQUEST = 'userEvents/load_request';
 
 interface LoadRequestAction extends Action<typeof LOAD_REQUEST> {}
 
 const LOAD_SUCCESS = 'userEvents/load_success';
 
-interface LoadSuccesAction extends Action<typeof LOAD_SUCCESS>{
+interface LoadSuccesAction extends Action<typeof LOAD_SUCCESS> {
   payload: {
     events: UserEvent[];
-  }
+  };
 }
 
-const LOAD_FAILURE = 'userEvents/load_failure'
+const LOAD_FAILURE = 'userEvents/load_failure';
 
 interface LoadFailureAction extends Action<typeof LOAD_FAILURE> {
-  error: string
+  error: string;
 }
 
 export const loadUserEvents =
-  (): ThunkAction<void, RootState, undefined, LoadRequestAction | LoadSuccesAction | LoadFailureAction> =>
+  (): ThunkAction<
+    void,
+    RootState,
+    undefined,
+    LoadRequestAction | LoadSuccesAction | LoadFailureAction
+  > =>
   async (dispatch, getState) => {
     dispatch({
-      type: LOAD_REQUEST
-    }):
+      type: LOAD_REQUEST,
+    });
 
     try {
-      const response = await fetch('http://localhost:300/events');
+      const response = await fetch('http://localhost:3001/events');
       const events: UserEvent[] = await response.json();
 
       dispatch({
         type: LOAD_SUCCESS,
-        payload: { events }
+        payload: { events },
       });
-    } catch(e) {
-      dispatch ({
+    } catch (e) {
+      dispatch({
         type: LOAD_FAILURE,
-        error: 'Failed to load events'
-      })
+        error: 'Failed to load events',
+      });
     }
   };
+
+const selectUserEventsState = (rootState: RootState) => rootState.userEvents;
+
+export const selectuserEventsArray = (rootState: RootState) => {
+  const state = selectUserEventsState(rootState);
+  return state.allIds.map((id) => state.byIds[id]);
+};
 
 const initialState: UserEventsState = {
   byIds: {},
@@ -66,12 +78,15 @@ const userEventsReducer = (
 ) => {
   switch (action.type) {
     case LOAD_SUCCESS:
-      const {events} = action.payload
-      return {...state, allIds: events.map(({id}) => id),
-      byIds: events.reduce<UserEventsState['byIds']>((byIds, event) => {
-        byIds[event.id] = event;
-        return byIds;
-      }, {})};
+      const { events } = action.payload;
+      return {
+        ...state,
+        allIds: events.map(({ id }) => id),
+        byIds: events.reduce<UserEventsState['byIds']>((byIds, event) => {
+          byIds[event.id] = event;
+          return byIds;
+        }, {}),
+      };
     default:
       return state;
   }
